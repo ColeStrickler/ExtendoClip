@@ -5,7 +5,7 @@
 #include <vector>
 // Must include the actual folder in the additional include settings
 #include "capstone/capstone.h"
-
+#include "memory.h"
 
 
 
@@ -55,6 +55,13 @@ bool IsRelativeJump(cs_insn& inst);
 bool IsRIPRelativeInstr(cs_insn& inst);
 
 namespace Hook {
+
+	// Standalone functions
+	BOOL HookIATEntry(wchar_t* ModuleName, const char* TgtFunctionName, void* HookFunction);
+
+
+
+
 
 	class x64 {
 	public:

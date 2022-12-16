@@ -11,6 +11,72 @@ Hook::x86::~x86()
 
 }
 
+
+BOOL Hook::HookIATEntry(wchar_t* ModuleName, const char* TgtFunctionName, void* HookFunction)
+{
+	uintptr_t modBase = mem::GetBaseAddress(ModuleName);
+
+
+	if (!modBase) {
+		return FALSE;
+	}
+
+	auto dos = (PIMAGE_DOS_HEADER)modBase;
+	if (dos->e_magic != IMAGE_DOS_SIGNATURE) {
+		return FALSE;
+	}
+	auto nt = (PIMAGE_NT_HEADERS)(modBase + dos->e_lfanew);
+	if (nt->Signature != IMAGE_NT_SIGNATURE) {
+		return FALSE;
+	}
+
+	auto opt = (PIMAGE_OPTIONAL_HEADER)(&nt->OptionalHeader);
+	auto importDir = &opt->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+	auto importDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(modBase + importDir->VirtualAddress);
+
+	short int i = 0;
+	while (importDescriptor[i].Characteristics != 0) {
+		auto thunkILT = (PIMAGE_THUNK_DATA)((&importDescriptor[i])->OriginalFirstThunk + modBase);
+		auto thunkIAT = (PIMAGE_THUNK_DATA)((&importDescriptor[i])->FirstThunk + modBase);
+
+		if (thunkILT == nullptr || thunkIAT == nullptr) {
+			return FALSE;
+		}
+
+
+		int nFunctions = 0;
+		int nOrdinalFunctions = 0;
+
+		while (thunkILT->u1.AddressOfData != 0) {
+			if (!(thunkILT->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
+				PIMAGE_IMPORT_BY_NAME nameArray;
+				uintptr_t funcNameAddress;
+
+				nameArray = (PIMAGE_IMPORT_BY_NAME)(thunkILT->u1.AddressOfData);
+				funcNameAddress = modBase + (uintptr_t)(nameArray->Name);
+
+				if (!_stricmp(TgtFunctionName, (char*)funcNameAddress)) {
+					DWORD oldProtect = 0;
+					VirtualProtect((LPVOID)(&thunkIAT->u1.Function), 8, PAGE_READWRITE, &oldProtect);
+					thunkIAT->u1.Function = (uintptr_t)HookFunction;
+					return TRUE;
+				}
+			}
+			else {
+				nOrdinalFunctions++;
+			}
+			thunkILT++;
+			thunkIAT++;
+			nFunctions++;
+		}
+
+
+	}
+	return FALSE;
+}
+
+
+
 DWORD Hook::x86::GetBaseAddress(wchar_t* modName) {
 	DWORD modBase = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, GetCurrentProcessId());

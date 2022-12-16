@@ -2,7 +2,7 @@
 
 
 
-PEB* GetPEB() {
+PEB* proc::GetPEB() {
 #ifdef _WIN64
 	PEB* peb = (PEB*)__readgsqword(0x60);
 	return peb;
@@ -14,7 +14,7 @@ PEB* GetPEB() {
 
 
 
-BOOL ProcIdExists(DWORD procId)
+BOOL proc::ProcIdExists(DWORD procId)
 {
 	BOOL ret = false;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -41,7 +41,7 @@ BOOL ProcIdExists(DWORD procId)
 }
 
 
-std::wstring GetProcnameFromId(DWORD procId)
+std::wstring proc::GetProcnameFromId(DWORD procId)
 {
 	std::wstring ret;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -68,7 +68,7 @@ std::wstring GetProcnameFromId(DWORD procId)
 }
 
 
-DWORD GetProcId(wchar_t* procName)
+DWORD proc::GetProcId(wchar_t* procName)
 {
 	DWORD procId = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -94,7 +94,7 @@ DWORD GetProcId(wchar_t* procName)
 	return procId;
 }
 
-uintptr_t GetBaseAddress(DWORD procId, wchar_t* modName) { 
+uintptr_t proc::GetBaseAddress(DWORD procId, wchar_t* modName) { 
 
 
 	uintptr_t modBase = 0;
@@ -118,7 +118,7 @@ uintptr_t GetBaseAddress(DWORD procId, wchar_t* modName) {
 	}
 }
 
-void getNameCurrentProc(wchar_t* out) {
+void proc::getNameCurrentProc(wchar_t* out) {
 	wchar_t fullPath[MAX_PATH + 1] = { 0 };
 	GetProcessImageFileNameW(GetCurrentProcess(), fullPath, (DWORD)sizeof(fullPath));
 	int lastSlash = 0;
@@ -134,5 +134,7 @@ void getNameCurrentProc(wchar_t* out) {
 		i++;
 		lastSlash++;
 	}
+	out[i] = 0x00;
 	return;
 }
+
